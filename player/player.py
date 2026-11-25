@@ -109,7 +109,7 @@ class Face:
 
         width, height = screen.get_size()
         x = width // 5 if self.side == "left" else width * 4 // 5
-        y = height // 2
+        y = height // 4
         radius = max(1, min(width, height) // 12)
         ink = (46, 30, 29)
         skin = (239, 149, 131) if self.state == "hit" else (247, 188, 139)
