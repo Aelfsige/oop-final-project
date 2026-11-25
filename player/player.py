@@ -108,20 +108,24 @@ class Face:
             self.set_state("idle")
 
         width, height = screen.get_size()
-        x = width // 5 if self.side == "left" else width * 4 // 5
-        y = height // 4
-        radius = max(1, min(width, height) // 12)
-        ink = (46, 30, 29)
-        skin = (239, 149, 131) if self.state == "hit" else (247, 188, 139)
-        pygame.draw.circle(screen, skin, (x, y), radius)
+        x = width // 7 if self.side == "left" else width * 4 // 5
+        y = height // 5.5
 
-        eye_radius = max(1, radius // 9)
-        for eye_x in (x - radius // 3, x + radius // 3):
-            pygame.draw.circle(screen, ink, (eye_x, y - radius // 4), eye_radius)
-        mouth = pygame.Rect(
-            x - radius // 3, y, max(1, radius * 2 // 3), max(1, radius // 2)
-        )
-        pygame.draw.ellipse(screen, ink, mouth, width=0 if self.state == "hit" else eye_radius)
+        face = pygame.image.load('assets/Wet Hands/big-villager-face.png')
+        face = pygame.transform.scale(face, (100, 100))
+        screen.blit(face, (x, y))
+        # radius = max(1, min(width, height) // 12)
+        # ink = (46, 30, 29)
+        # skin = (239, 149, 131) if self.state == "hit" else (247, 188, 139)
+        # pygame.draw.circle(screen, skin, (x, y), radius)
+
+        # eye_radius = max(1, radius // 9)
+        # for eye_x in (x - radius // 3, x + radius // 3):
+        #     pygame.draw.circle(screen, ink, (eye_x, y - radius // 4), eye_radius)
+        # mouth = pygame.Rect(
+        #     x - radius // 3, y, max(1, radius * 2 // 3), max(1, radius // 2)
+        # )
+        # pygame.draw.ellipse(screen, ink, mouth, width=0 if self.state == "hit" else eye_radius)
 
         if self.state == "cream_pied":
             progress = min(1.0, elapsed / self.SPLAT_DURATION)

@@ -74,8 +74,14 @@ class Lane:
             y = time_to_screen_y(note.time, self._song_time, self.hit_line_y,
                                  self.SPAWN_Y, self.LOOKAHEAD)
             col = (90, 90, 100) if note.state == "missed" else self.color
-            pygame.draw.rect(screen, col,
-                             pygame.Rect(self.x + 6, y - 11, self.WIDTH - 12, 22),
-                             border_radius=8)
+
+            note = pygame.image.load('assets/Wet Hands/mania-note1@2x.png').convert()
+            note = pygame.transform.scale(note, (self.WIDTH - 12, 22))
+
+            screen.blit(note, (self.x + 6, y - 11))
+
+            # pygame.draw.rect(screen, col,
+            #                  pygame.Rect(self.x + 6, y - 11, self.WIDTH - 12, 22),
+            #                  border_radius=8)
         label = self._font.render(pygame.key.name(self.key).upper(), True, (230, 230, 240))
         screen.blit(label, label.get_rect(center=(self.x + self.WIDTH // 2, self.hit_line_y + 28)))

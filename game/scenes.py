@@ -108,7 +108,11 @@ class PlayScene(Scene):
         self.game.change_scene(GameOverScene(self.game, winner))
 
     def draw(self, screen):
-        screen.fill((26, 23, 35))
+        width, height = screen.get_size()
+        background = pygame.image.load('assets/Wet Hands/58mgpshttl4a1 (1).jpg')
+        background = pygame.transform.scale(background, (width, height))
+        screen.blit(background, (0, 0))
+        # screen.fill((26, 23, 35))
         for player in self.players.values():
             for lane in player.lanes:
                 lane.draw(screen)
@@ -188,7 +192,10 @@ class HUD:
         y = 175
         x = round(left + (right - left) * (self.hand.position + 1) / 2)
         pygame.draw.line(screen, (125, 105, 120), (left, y), (right, y), 4)
-        pygame.draw.circle(screen, (255, 238, 216), (x, y), max(10, height // 45))
+        # pygame.draw.circle(screen, (255, 238, 216), (x, y), max(10, height // 45))
+        pie = pygame.image.load('assets/Wet Hands/cake-64.png')
+        # pie = pygame.transform.scale(pie, )
+        screen.blit(pie, (x, y - 30))
 
         if self.popup:
             text, side, started = self.popup
