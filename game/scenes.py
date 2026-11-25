@@ -44,6 +44,7 @@ class MenuScene(Scene):
 class PlayScene(Scene):
     HIT_PUSH = 0.12
     MISS_PUSH = 0.08
+    SCORES = {"perfect": 300, "good": 100}
 
     def __init__(self, game):
         super().__init__(game)
@@ -69,9 +70,12 @@ class PlayScene(Scene):
         side, lane_index = mapped
         player = self.players[side]
         result = player.press(lane_index, self.conductor.song_time())
+        if result is None:      # ghost tap: no note was close enough
+            return
         self._resolve(side, result)
 
     def update(self, dt):
+        self.conductor.update()         # starts the music when the lead-in ends
         song_time = self.conductor.song_time()
         for side, player in self.players.items():
             for lane in player.lanes:
@@ -87,9 +91,21 @@ class PlayScene(Scene):
             if self.hand.reached(side):
                 self.players[side].face.set_state("cream_pied")
                 self.audio.play_sfx("splat")
-                winner = self.players["right" if side == "left" else "left"]
-                self.game.change_scene(GameOverScene(self.game, winner))
+                self._finish(self.players["right" if side == "left" else "left"])
                 return
+
+        # Song over with nobody cream-pied: the player the hand is farther from wins.
+        if all(lane.finished for p in self.players.values() for lane in p.lanes):
+            left, right = self.players["left"], self.players["right"]
+            if self.hand.position != 0:
+                winner = right if self.hand.position < 0 else left
+            else:
+                winner = left if left.score >= right.score else right
+            self._finish(winner)
+
+    def _finish(self, winner):
+        self.audio.stop()
+        self.game.change_scene(GameOverScene(self.game, winner))
 
     def draw(self, screen):
         screen.fill((26, 23, 35))
@@ -109,6 +125,7 @@ class PlayScene(Scene):
             return
 
         self.players[side].add_combo()
+        self.players[side].score += self.SCORES.get(result, 0)
         self.players[side].face.set_state("hit")
         opponent = "right" if side == "left" else "left"
         self.hand.pass_to(side)
@@ -157,7 +174,7 @@ class HUD:
 
     def draw(self, screen):
         width, height = screen.get_size()
-        left, right = width // 5, width * 4 // 5
+        left, right = width // 4, width * 3.75 // 5
 
         for side, x in (("left", left), ("right", right)):
             player = self.players[side]
@@ -168,7 +185,7 @@ class HUD:
             )
             screen.blit(label, label.get_rect(center=(x, 36)))
 
-        y = height - 48
+        y = 175
         x = round(left + (right - left) * (self.hand.position + 1) / 2)
         pygame.draw.line(screen, (125, 105, 120), (left, y), (right, y), 4)
         pygame.draw.circle(screen, (255, 238, 216), (x, y), max(10, height // 45))
