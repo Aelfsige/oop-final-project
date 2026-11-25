@@ -1,45 +1,64 @@
+import os
+import sys
+
+import pygame
+
 from game.game import Game
-from game.scenes import *
 from player.player import Player, Hand
 from chart.chart import Chart
 from chart.conductor import Conductor
 from chart.lane import Lane
 from logic.judgement import JudgementSystem
 from logic.input_handler import InputHandler
-import pygame
+
+DEFAULT_SONG = './assets/Wet Hands'     # a folder or a .osu file
+SFX_FOLDER = './assets/sfx'             # optional: hit.wav, miss.wav, splat.wav
+HIT_LINE_Y = 600
+LANE_SPACING = 80                       # Lane.WIDTH is 70, so 10 px gap
+AUDIO_OFFSET = 0.0                      # seconds; raise it if notes feel late, lower it if early
+
+LEFT_KEYS = [pygame.K_a, pygame.K_s, pygame.K_d, pygame.K_f]
+RIGHT_KEYS = [pygame.K_j, pygame.K_k, pygame.K_l, pygame.K_SEMICOLON]
+
+
+def find_osu(path):
+    """Accept a .osu file, or a folder containing one."""
+    if os.path.isdir(path):
+        maps = sorted(f for f in os.listdir(path) if f.lower().endswith('.osu'))
+        if not maps:
+            raise RuntimeError(f"No .osu file found in {path}")
+        return os.path.join(path, maps[0])
+    return path
+
+
+def make_lanes(keys, center_x, notes, judgement):
+    """The four Lane objects for one player, centred on center_x."""
+    start_x = center_x - (3 * LANE_SPACING + Lane.WIDTH) // 2
+    return [
+        Lane(key, start_x + i * LANE_SPACING, HIT_LINE_Y, judgement,
+             notes=[n for n in notes if n.lane == i])
+        for i, key in enumerate(keys)
+    ]
+
 
 def build_match(game):
-    chart = Chart()
+    try:
+        osu_path = find_osu(getattr(game, 'song_path', DEFAULT_SONG))
+        chart = Chart()
+        chart.load_file(osu_path)       # notes, title, bpm and the music path
+        chart.load_sfx(SFX_FOLDER)
+    except (OSError, ValueError) as error:
+        raise RuntimeError(str(error))  # the menu shows RuntimeError messages
+
     judgement = JudgementSystem()
-    chart.load_file('./assets/Wet Hands/C418 - Wet Hands (Slyme) [Nostalgia].osu') # create metadata
-    chart.load_audio('./assets/Wet Hands/audio.mp3')
-    conductor = Conductor(chart)
+    conductor = Conductor(bpm=chart.bpm, offset=AUDIO_OFFSET, audio=chart)
 
-    notes = chart.notes
+    width = game.screen.get_width()     # players sit at the same x as their face and score
+    left = Player('left', LEFT_KEYS,
+                  make_lanes(LEFT_KEYS, width // 5, chart.notes_for('left'), judgement))
+    right = Player('right', RIGHT_KEYS,
+                   make_lanes(RIGHT_KEYS, width * 4 // 5, chart.notes_for('right'), judgement))
 
-    x0 = 160
-    x1 = 320
-    left_lane0 = Lane(pygame.K_a, x0 + 0 * 90, 600, judgement, notes=[n for n in notes if n.owner == 'left'])
-    left_lane1 = Lane(pygame.K_s, x0 + 1 * 90, 600, judgement, notes=[n for n in notes if n.owner == 'left'])
-    left_lane2 = Lane(pygame.K_d, x0 + 2 * 90, 600, judgement, notes=[n for n in notes if n.owner == 'left'])
-    left_lane3 = Lane(pygame.K_f, x0 + 3 * 90, 600, judgement, notes=[n for n in notes if n.owner == 'left'])
-
-    right_lane0 = Lane(pygame.K_j, x1 + 4 * 90, 600, judgement, notes=[n for n in notes if n.owner == 'right'])
-    right_lane1 = Lane(pygame.K_k, x1 + 5 * 90, 600, judgement, notes=[n for n in notes if n.owner == 'right'])
-    right_lane2 = Lane(pygame.K_l, x1 + 6 * 90, 600, judgement, notes=[n for n in notes if n.owner == 'right'])
-    right_lane3 = Lane(pygame.K_SEMICOLON, x1 + 7 * 90, 600, judgement, notes=[n for n in notes if n.owner == 'right'])
-
-    left = Player(
-        'left', 
-        [pygame.K_a, pygame.K_s, pygame.K_d, pygame.K_f], 
-        [left_lane0, left_lane1, left_lane2, left_lane3]
-    )
-    right = Player(
-        'right',
-        [pygame.K_j, pygame.K_k, pygame.K_l, pygame.K_SEMICOLON],
-        [right_lane0, right_lane1, right_lane2, right_lane3]
-    )
-    
     return {
         'players': {'left': left, 'right': right},
         'hand': Hand(),
@@ -47,12 +66,17 @@ def build_match(game):
         'conductor': conductor,
         'judgement': judgement,
         'input_handler': InputHandler(),
-        'audio': chart,
-        'assets': None
+        'audio': chart,                 # Chart plays the music and sound effects
+        'assets': None,
     }
 
+
 def main():
-    Game(match_factory=build_match).run()
+    # python main.py [song folder or .osu file]
+    song_path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_SONG
+    game = Game(match_factory=build_match)
+    game.song_path = song_path
+    game.run()
 
 
 if __name__ == '__main__':
