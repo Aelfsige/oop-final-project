@@ -18,6 +18,8 @@ These classes are independent of the rest of the game, which avoids circular imp
 
 **Attributes:** `key_map` {key: (player_side, lane_index)}
 
+**Setup:** `InputHandler(key_map=None)` defaults to `A S D F` for left and `J K L ;` for right. Pass a mapping to customize it.
+
 **Methods:** `map_key(key)` returns `(side, lane)` or `None`
 
 **Instructions:**
@@ -29,6 +31,8 @@ These classes are independent of the rest of the game, which avoids circular imp
 
 **Attributes:** loaded music path, sfx dictionary, volume
 
+**Setup:** `AudioManager(sfx_paths=None, volume=1.0)` preloads the provided `{name: path}` sound effects.
+
 **Methods:** `play_music(path)`, `play_sfx(name)`, `stop()`
 
 **Instructions:** Preload sfx (hit, miss, splat) at startup to avoid lag. Initialize the mixer with a small buffer for low latency.
@@ -36,7 +40,7 @@ These classes are independent of the rest of the game, which avoids circular imp
 ## Assets
 **Purpose:** Loads and caches images, sounds, and fonts.
 
-**Attributes:** `images`, `sounds`, `fonts` (dicts keyed by path)
+**Attributes:** `images` and `sounds` keyed by path; `fonts` keyed by `(path, size)`
 
 **Methods:** `load_image(path)`, `load_sound(path)`, `load_font(path, size)`
 

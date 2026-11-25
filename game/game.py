@@ -7,6 +7,7 @@ from .scenes import MenuScene
 
 class Game:
     def __init__(self, match_factory: Callable | None = None, size=(1280, 720), fps=60):
+        pygame.mixer.pre_init(buffer=512)
         pygame.init()
         self.screen = pygame.display.set_mode(size)
         pygame.display.set_caption("Rhythm Cream-Pie")
