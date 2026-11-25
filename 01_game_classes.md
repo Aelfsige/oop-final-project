@@ -3,59 +3,52 @@
 Files: `game/game.py`, `game/scenes.py`
 
 ## Game
-**Purpose:** Owns the window, clock, and main loop. Switches between scenes.
+Owns the pygame window, frame clock, current scene, and main loop.
 
-**Attributes:** `screen`, `clock`, `current_scene`, `running`
+**Attributes:** `screen`, `clock`, `current_scene`, `running`, `match_factory`
 
 **Methods:**
-- `run()`: main loop: poll events, `update(dt)`, `draw(screen)`, flip display
-- `change_scene(scene)`: swaps `current_scene`
+- `run()`: compute `dt` once per frame, route events to the scene, then update and draw.
+- `change_scene(scene)`: set the current `Scene` instance.
+- `new_match()`: call the optional `match_factory(game)` and return the match dependencies. Starting a match requires a factory.
 
-**Instructions:**
-- Compute `dt` once per frame and pass it to the scene.
-- Never put gameplay logic here.
+The factory returns `players` keyed by side, `hand`, `chart`, `conductor`, `judgement`, `input_handler`, `audio`, and `assets`. It wires chart notes into each player's lanes and shares one `JudgementSystem` across them. `PlayScene` creates its `HUD` from `players` and `hand`.
 
-## Scene (base class)
-**Purpose:** Common interface for every screen.
+Keep gameplay rules in `PlayScene` and pass `dt` to `update()` in seconds.
 
-**Methods (override in subclasses):** `handle_event(event)`, `update(dt)`, `draw(screen)`
+## Scene
+Base class for screens. Each scene keeps a reference to `game` and implements:
 
-**Instructions:** Each scene receives a reference to `Game` so it can call `change_scene`.
+- `handle_event(event)`
+- `update(dt)`
+- `draw(screen)`
 
 ## MenuScene
-**Purpose:** Title screen with a start option.
-
-**Attributes:** menu options, selected index
-
-**Instructions:** On start, create a new `PlayScene` and call `game.change_scene(...)`.
+Shows the title and start option. On start, switch with `game.change_scene(PlayScene(game))`.
 
 ## PlayScene
-**Purpose:** Runs the match. This is where the other groups are wired together.
+Coordinates one match; it owns the game rules and connects the other classes.
 
-**Attributes:** `players` (2), `hand`, `faces` (2), `conductor`, `chart`, `judgement`, `input_handler`, `hud`
+**Attributes:** `players` (`{"left": Player, "right": Player}`), `hand`, `chart`, `conductor`, `judgement`, `input_handler`, `audio`, `assets`, `hud`
 
-**Per-frame flow:**
-1. `handle_event`: `InputHandler` converts a key press into `(player, lane)` plus a timestamp.
-2. The player's `Lane` calls `try_hit`, using `JudgementSystem` to grade it.
-3. Hit: `Player.add_combo()`, `Hand.pass_to(opponent)` and push toward the opponent.
-4. Miss: `Player.reset_combo()`, and the hand moves toward the player's own face.
-5. `update`: update conductor, lanes, notes (auto-miss late notes), and hand.
-6. If `Hand.reached(side)`, set that `Face` to cream-pied and go to `GameOverScene`.
+**Input flow:** On `KEYDOWN`, map the key to `(side, lane_index)`. Ignore key repeats and timestamp it immediately with `conductor.song_time()`. Call `players[side].press(lane_index, time)`; the lane selects a note and `JudgementSystem` returns `"perfect"`, `"good"`, or `"miss"`.
 
-**Instructions:**
-- Drive everything from `Conductor.song_time()`, never from frame count.
-- Keep rule decisions (who gets hit) here, not in `Hand`.
+**Result flow:**
+- Hit: call `players[side].add_combo()`, show the judgement, call `players[side].face.set_state("hit")`, then pass the hand to that side and push it toward the opponent.
+- Miss: call `players[side].reset_combo()` and push the hand toward that player's face.
+- Auto-miss: apply the same miss response when a lane expires a late note.
+- If `hand.reached(side)`, call `players[side].face.set_state("cream_pied")` and switch to `GameOverScene` with the other player as winner.
+
+**Update:** Read song time from the conductor, update each lane to spawn notes and detect auto-misses, apply the miss response to new misses, then update the hand with `dt`.
+
+Use `AudioManager` for playback and sound effects, and `Assets` for cached images, sounds, and fonts. Keep hit, miss, and winner decisions here; `Player`, `Hand`, `Face`, `Lane`, and `HUD` handle their own state or display.
 
 ## GameOverScene
-**Purpose:** Shows the winner and offers restart or menu.
-
-**Attributes:** `winner`
-
-**Instructions:** Restart creates a fresh `PlayScene`; do not reuse the old one.
+Shows `winner` and offers restart or menu. Restart with a fresh `PlayScene(game)`; return to `MenuScene(game)` for the menu.
 
 ## HUD
-**Purpose:** Draws combo, judgement popups, and the tug-of-war indicator. Owned by `PlayScene`.
+Displays player combos, judgement popups, and the hand position. `PlayScene` owns it and gives it read-only access to match state.
 
 **Methods:** `show_judgement(text, side)`, `draw(screen)`
 
-**Instructions:** Read-only: it displays state and never changes it.
+HUD draws state only; it never changes the match.
