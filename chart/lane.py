@@ -50,10 +50,10 @@ class Lane:
         if not pending:
             return None
         note = min(pending, key=lambda n: abs(n.time - press_time))
-        grade = self.judgement.grade(press_time - note.time)
-        if grade is None:
-            return None
-        note.state = "hit"
+        if abs(note.time - press_time) > self.judgement.late_window:
+            return None                      # ghost tap: nothing close enough
+        grade = self.judgement.judge(press_time, note.time)
+        note.state = "missed" if grade == "miss" else "hit"
         return grade
 
     @property

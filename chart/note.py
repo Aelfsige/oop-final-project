@@ -1,11 +1,9 @@
-from enum import Enum
-
 class Note:
     def __init__(self, time, typ, lane, end_time, owner):
-        self.time = time            # when will it appear (in ms)
+        self.time = time            # hit time in SECONDS
         self.typ = typ              # note type (1 = normal, 128 = long note)
-        self.lane = lane            # where the notes will fall
-        self.end_time = end_time    # for long note
+        self.lane = lane            # column 0-3
+        self.end_time = end_time    # release time in seconds (long notes), else None
         self.owner = owner          # which side should hit it
         self.state = 'pending'      # pending | hit | missed
 
